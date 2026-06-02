@@ -1,7 +1,7 @@
-import { ICustomer } from '../../../types/index.ts';
+import { ICustomer, TPayment } from '../../../types/index.ts';
 
-export class Customer implements ICustomer {
-  private _payment: string = '';
+export class Customer {
+  private _payment: TPayment | '' = '';
   private _address: string = '';
   private _phone: string = '';
   private _email: string = '';
@@ -11,10 +11,23 @@ export class Customer implements ICustomer {
   get phone(): string { return this._phone; }
   get email(): string { return this._email; }
 
-  updatePaymentMethod(method: string): void { this._payment = method; }
-  updateAddress(addr: string): void { this._address = addr; }
-  updatePhone(phone: string): void { this._phone = phone; }
-  updateEmail(email: string): void { this._email = email; }
+  setData(data: Partial<ICustomer>): void {
+    if (data.payment !== undefined) {
+      this._payment = data.payment;
+    }
+
+    if (data.address !== undefined) {
+      this._address = data.address;
+    }
+
+    if (data.phone !== undefined) {
+      this._phone = data.phone;
+    }
+
+    if (data.email !== undefined) {
+      this._email = data.email;
+    }
+  }
 
   getData(): ICustomer {
     return {
@@ -32,17 +45,25 @@ export class Customer implements ICustomer {
     this._email = '';
   }
 
-  validate(): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
+  validate(): Partial<Record<keyof ICustomer, string>> {
+    const errors: Partial<Record<keyof ICustomer, string>> = {};
 
-    if (!this._payment.trim()) errors.push('Вид оплаты не указан');
-    if (!this._address.trim()) errors.push('Адрес не указан');
-    if (!this._phone.trim()) errors.push('Телефон не указан');
-    if (!this._email.trim()) errors.push('Email не указан');
+    if (!this._payment.trim()) {
+      errors.payment = 'Выберите способ оплаты';
+    }
 
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
+    if (!this._address.trim()) {
+      errors.address = 'Укажите адрес';
+    }
+
+    if (!this._phone.trim()) {
+      errors.phone = 'Укажите телефон';
+    }
+
+    if (!this._email.trim()) {
+      errors.email = 'Укажите email';
+    }
+
+    return errors;
   }
 }

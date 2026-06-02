@@ -12,15 +12,15 @@ export class Catalog {
     return [...this.products];
   }
 
-  getProductById(productId: string): IProduct | undefined {
+  getProduct(productId: string): IProduct | undefined {
     return this.products.find(product => product.id === productId);
   }
 
-  selectProduct(product: IProduct): void {
+  setPrewiew(product: IProduct): void {
     this.selectedProduct = product;
   }
 
-  getSelectedProduct(): IProduct | null {
+  getPrewiew(): IProduct | null {
     return this.selectedProduct;
   }
 }
