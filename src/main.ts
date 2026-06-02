@@ -1,10 +1,13 @@
 import './scss/styles.scss';
 
 import { Api } from './components/base/Api';
+import { apiProducts } from './utils/data';
 import { API_URL } from './utils/constants';
 import { WebLarekApi } from './components/WebLarekApi';
 
 import { Catalog } from './components/base/models/catalog';
+import { Cart } from './components/base/models/cart';
+import { Customer } from './components/base/models/customer';
 
 const api = new Api(API_URL);
 const webLarekApi = new WebLarekApi(api);
@@ -25,85 +28,93 @@ webLarekApi
     console.error('Ошибка получения товаров:', error);
   });
 
-// import { apiProducts } from './utils/data';
 
-// import { Catalog } from './components/base/models/catalog';
-// import { Cart } from './components/base/models/cart';
-// import { Customer } from './components/base/models/customer';
+catalog.setProducts(apiProducts.items);
 
-// const catalog = new Catalog();
+console.log('Все товары:', catalog.getProducts());
 
-// catalog.setProducts(apiProducts.items);
+const firstProduct = apiProducts.items[0];
 
-// console.log('Все товары:', catalog.getProducts());
+catalog.setPrewiew(firstProduct);
 
-// const firstProduct = apiProducts.items[0];
+console.log(
+  'Выбранный товар:',
+  catalog.getPrewiew()
+);
 
-// catalog.setPrewiew(firstProduct);
+console.log(
+  'Поиск по id:',
+  catalog.getProduct(firstProduct.id)
+);
 
-// console.log(
-//   'Выбранный товар:',
-//   catalog.getPrewiew()
-// );
+const cart = new Cart();
 
-// console.log(
-//   'Поиск по id:',
-//   catalog.getProduct(firstProduct.id)
-// );
+cart.addItem(firstProduct);
 
-// const cart = new Cart();
+console.log(
+  'Товары в корзине:',
+  cart.getItems()
+);
 
-// cart.addItem(firstProduct);
+console.log(
+  'Количество товаров:',
+  cart.getItemCount()
+);
 
-// console.log(
-//   'Товары в корзине:',
-//   cart.getItems()
-// );
+console.log(
+  'Общая стоимость:',
+  cart.getTotalPrice()
+);
 
-// console.log(
-//   'Количество товаров:',
-//   cart.getItemCount()
-// );
+console.log(
+  'Товар в корзине:',
+  cart.hasItem(firstProduct.id)
+);
 
-// console.log(
-//   'Общая стоимость:',
-//   cart.getTotalPrice()
-// );
+cart.removeItem(firstProduct);
 
-// console.log(
-//   'Товар в корзине:',
-//   cart.hasItem(firstProduct.id)
-// );
+console.log(
+  'После удаления:',
+  cart.getItems()
+);
 
-// cart.removeItem(firstProduct);
+cart.clear();
 
-// console.log(
-//   'После удаления:',
-//   cart.getItems()
-// );
+console.log(
+  'После очистки:',
+  cart.getItems()
+);
 
-// cart.clear();
+const customer = new Customer();
 
-// console.log(
-//   'После очистки:',
-//   cart.getItems()
-// );
+customer.setData({
+  payment: 'card',
+  address: 'Москва',
+  phone: '+79991234567',
+});
 
-// const customer = new Customer();
+console.log(
+  'Валидация с пустым email:',
+  customer.validate()
+);
 
-// customer.setData({
-//   payment: 'card',
-//   address: 'Москва',
-//   phone: '+79991234567',
-//   email: 'test@test.ru'
-// });
+customer.setData({
+  email: 'test@test.ru'
+});
 
-// console.log(customer.getData());
-// console.log(customer.validate());
+console.log(
+  'Данные покупателя:',
+  customer.getData()
+);
 
-// customer.clearData();
+console.log(
+  'Валидация заполненного покупателя:',
+  customer.validate()
+);
 
-// console.log(
-//   'После очистки:',
-//   customer.getData()
-// );
+customer.clearData();
+
+console.log(
+  'После очистки:',
+  customer.getData()
+);

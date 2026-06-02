@@ -1,4 +1,4 @@
-import { ICustomer, TPayment } from '../../../types/index.ts';
+import { ICustomer, TPayment, TCustomerErrors } from '../../../types/index.ts';
 
 export class Customer {
   private _payment: TPayment | '' = '';
@@ -45,8 +45,8 @@ export class Customer {
     this._email = '';
   }
 
-  validate(): Partial<Record<keyof ICustomer, string>> {
-    const errors: Partial<Record<keyof ICustomer, string>> = {};
+  validate(): TCustomerErrors {
+    const errors: TCustomerErrors = {};
 
     if (!this._payment.trim()) {
       errors.payment = 'Выберите способ оплаты';
