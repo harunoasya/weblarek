@@ -1,10 +1,13 @@
 import { ICustomer, TPayment, TCustomerErrors } from '../../../types/index.ts';
+import { IEvents } from "../Events.ts"
 
 export class Customer {
   private _payment: TPayment | '' = '';
   private _address: string = '';
   private _phone: string = '';
   private _email: string = '';
+
+  constructor(protected events: IEvents) {}
 
   get payment(): string { return this._payment; }
   get address(): string { return this._address; }
@@ -27,6 +30,8 @@ export class Customer {
     if (data.email !== undefined) {
       this._email = data.email;
     }
+
+    this.events.emit('customer:changed');
   }
 
   getData(): ICustomer {
@@ -43,6 +48,8 @@ export class Customer {
     this._address = '';
     this._phone = '';
     this._email = '';
+
+    this.events.emit('customer:changed');
   }
 
   validate(): TCustomerErrors {
