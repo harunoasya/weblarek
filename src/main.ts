@@ -4,14 +4,16 @@ import { Api } from './components/base/Api';
 import { API_URL } from './utils/constants';
 import { WebLarekApi } from './components/WebLarekApi';
 
-import { Page } from './components/Page';
+import { Gallery } from './components/Gallery';
+import { Header } from './components/Header';
 import { Modal } from './common/Modal';
-import { Card } from './components/Card';
 import { Basket } from './components/Basket';
 import { BasketItem } from './components/BasketItem';
 import { OrderForm } from './components/OrderForm';
 import { ContactsForm } from './components/ContactsForm';
 import { Success } from './components/Success';
+import { CatalogCard } from './components/CatalogCard';
+import { PreviewCard } from './components/PreviewCard';
 
 import { Catalog } from './components/base/models/catalog';
 import { Cart } from './components/base/models/cart';
@@ -25,15 +27,30 @@ const webLarekApi = new WebLarekApi(api);
 
 const events = new EventEmitter();
 
-const page = new Page(document.body, events);
+const gallery = new Gallery(document.querySelector('.gallery') as HTMLElement);
+const header = new Header(document.querySelector('.header') as HTMLElement, events);
 const modal = new Modal(document.getElementById('modal-container')!, events);
 
 const catalog = new Catalog(events);
 const cart = new Cart(events);
 const customer = new Customer(events);
 
-let orderForm: OrderForm | null = null;
-let contactsForm: ContactsForm | null = null;
+const basketTemplate = document.querySelector('#basket') as HTMLTemplateElement;
+const basketElement = basketTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
+const basketView = new Basket(basketElement, events);
+
+const orderTemplate = document.querySelector('#order') as HTMLTemplateElement;
+const orderElement = orderTemplate.content.firstElementChild!.cloneNode(true) as HTMLFormElement;
+const orderForm = new OrderForm(orderElement, events);
+
+const contactsTemplate = document.querySelector('#contacts') as HTMLTemplateElement;
+const contactsElement = contactsTemplate.content.firstElementChild!.cloneNode(true) as HTMLFormElement;
+const contactsForm = new ContactsForm(contactsElement, events);
+
+const successTemplate = document.querySelector('#success') as HTMLTemplateElement;
+const successElement = successTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
+const success = new Success(successElement, events);
+
 
 events.on('catalog:changed', () => {
   const cards = catalog.getProducts().map((product) => {
@@ -41,12 +58,12 @@ events.on('catalog:changed', () => {
 
     const cardElement = template.content.firstElementChild!.cloneNode(true) as HTMLElement;
 
-    const card = new Card(cardElement, events);
+    const card = new CatalogCard(cardElement, () => events.emit('card:select', { id: product.id }));
 
     return card.render(product);
   })
 
-  page.catalog = cards;
+  gallery.items = cards;
 });
 
 events.on<{ id:string }>('card:select', ({ id }) => {
@@ -68,11 +85,19 @@ events.on('catalog:selected', () => {
 
   const cardElement = template.content.firstElementChild!.cloneNode(true) as HTMLElement;
 
-  const card = new Card(cardElement, events);
+  const card = new PreviewCard(cardElement, () => events.emit('card:action'));
+
+  if (product.price === null) {
+    card.buttonDisabled = true;
+    card.buttonText = 'Недоступно';
+  } else {
+    card.buttonDisabled = false;
+    card.buttonText = cart.hasItem(product.id)
+    ? 'Удалить из корзины'
+    : 'Купить';
+  }
 
   const content = card.render(product);
-
-  card.inCart = cart.hasItem(product.id);
 
   modal.render({
     content,
@@ -82,14 +107,14 @@ events.on('catalog:selected', () => {
 
 });
 
-events.on<{ id:string }>('card:action', ({ id }) => {
-  const product = catalog.getProduct(id);
+events.on('card:action', () => {
+  const product = catalog.getPreview();
 
   if (!product) {
     return;
   }
 
-  if (cart.hasItem(id)) {
+  if (cart.hasItem(product.id)) {
     cart.removeItem(product);
   } else {
     cart.addItem(product);
@@ -98,28 +123,20 @@ events.on<{ id:string }>('card:action', ({ id }) => {
   modal.close();
 });
 
-function renderBasket() {
-  const basketTemplate = document.querySelector(
-    '#basket'
-  ) as HTMLTemplateElement;
-
-  const basketElement = basketTemplate.content.firstElementChild!
-    .cloneNode(true) as HTMLElement;
-
-  const basketView = new Basket(basketElement, events);
+events.on('cart:changed', () => {
+  header.counter = cart.getItemCount();
 
   const basketItems = cart.getItems().map((product, index) => {
-    const itemTemplate = document.querySelector(
-      '#card-basket'
-    ) as HTMLTemplateElement;
+    const itemTemplate = document.querySelector('#card-basket') as HTMLTemplateElement;
 
     const itemElement = itemTemplate.content.firstElementChild!
       .cloneNode(true) as HTMLElement;
 
-    const item = new BasketItem(itemElement, events);
+    const item = new BasketItem(itemElement, () => {
+      events.emit('basket:remove', { id: product.id })
+    });
 
     return item.render({
-      id: product.id,
       title: product.title,
       price: product.price ?? 0,
       index: index + 1,
@@ -129,25 +146,15 @@ function renderBasket() {
   basketView.items = basketItems;
   basketView.total = cart.getTotalPrice();
 
+});
+
+events.on('basket:open', () => {
   modal.render({
     content: basketView.render(),
   });
-}
 
-events.on('basket:open', () => {
-  renderBasket();
   modal.open();
 })
-
-events.on('cart:changed', () => {
-  page.counter = cart.getItemCount();
-
-  const isBasketOpen = document.getElementById('modal-container')?.classList.contains('modal_active');
-
-  if (isBasketOpen) {
-    renderBasket();
-  }
-});
 
 events.on<{ id:string }>('basket:remove', ({ id }) => {
   const product = catalog.getProduct(id);
@@ -160,22 +167,9 @@ events.on<{ id:string }>('basket:remove', ({ id }) => {
 });
 
 events.on('basket:order', () => {
-  const template = document.querySelector(
-    '#order'
-  ) as HTMLTemplateElement;
-
-  const formElement = template.content.firstElementChild!
-    .cloneNode(true) as HTMLFormElement;
-
-  orderForm = new OrderForm(formElement, events);
 
   modal.render({
-    content: orderForm.render({
-      payment: customer.getData().payment,
-      address: customer.getData().address,
-      valid: false,
-      errors: '',
-    }),
+    content: orderForm.render(),
   });
 
   modal.open();
@@ -190,22 +184,9 @@ events.on<{ address: string }>('order.address:change', ({ address }) => {
 });
 
 events.on('order:submit', () => {
-  const template = document.querySelector(
-    '#contacts'
-  ) as HTMLTemplateElement;
-
-  const formElement = template.content.firstElementChild!
-    .cloneNode(true) as HTMLFormElement;
-
-  contactsForm = new ContactsForm(formElement, events);
-
+  
   modal.render({
-    content: contactsForm.render({
-      email: customer.getData().email,
-      phone: customer.getData().phone,
-      valid: false,
-      errors: '',
-    }),
+    content: contactsForm.render(),
   });
 });
 
@@ -224,10 +205,7 @@ events.on<{ phone: string }>(
 );
 
 events.on('customer:changed', () => {
-  if (!orderForm) {
-    return;
-  }
-
+  
   const errors = customer.validate();
 
   const orderErrors: string[] = [];
@@ -281,20 +259,13 @@ events.on('contacts:submit', () => {
     total: cart.getTotalPrice(),
   })
   .then((result) => {
-  const template = document.querySelector(
-    '#success'
-  ) as HTMLTemplateElement;
-
-  const element = template.content.firstElementChild!
-    .cloneNode(true) as HTMLElement;
-
-  const success = new Success(element, events);
-
-  modal.render({
-    content: success.render({
+    success.render({
       total: result.total,
-    }),
-  });
+    });
+    
+    modal.render({
+      content: success.render(),
+    });
 
   cart.clear();
   customer.clearData();

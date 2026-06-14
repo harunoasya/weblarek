@@ -1,22 +1,21 @@
-import { Component } from '../components/base/Component';
-import { IEvents } from '../components/base/Events';
+import { Component } from './base/Component';
+import { IEvents } from './base/Events';
 
-interface IPage {
+interface IHeader {
   counter: number;
-  catalog: HTMLElement[];
 }
 
-export class Page extends Component<IPage> {
-  protected gallery: HTMLElement;
+export class Header extends Component<IHeader> {
   protected basketButton: HTMLButtonElement;
   protected basketCounter: HTMLElement;
 
   constructor(container: HTMLElement, protected events: IEvents) {
     super(container);
 
-    this.gallery = container.querySelector('.gallery')!;
     this.basketButton = container.querySelector('.header__basket')!;
-    this.basketCounter = container.querySelector('.header__basket-counter')!;
+    this.basketCounter = container.querySelector(
+      '.header__basket-counter'
+    )!;
 
     this.basketButton.addEventListener('click', () => {
       this.events.emit('basket:open');
@@ -25,9 +24,5 @@ export class Page extends Component<IPage> {
 
   set counter(value: number) {
     this.basketCounter.textContent = String(value);
-  }
-
-  set catalog(items: HTMLElement[]) {
-    this.gallery.replaceChildren(...items);
   }
 }
